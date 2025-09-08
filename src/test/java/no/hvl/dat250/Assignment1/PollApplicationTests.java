@@ -83,7 +83,7 @@ public class PollApplicationTests {
 
         // Delete poll
         pollManager.deletePoll(pollId);
-        assertEquals(0, pollManager.getVotes().size());
+        assertEquals(0, pollManager.getPolls().size());
 
     }
 }
