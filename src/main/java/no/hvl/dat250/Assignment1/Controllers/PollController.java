@@ -34,10 +34,10 @@ public class PollController {
         poll.setQuestion(request.getQuestion());
         poll.setPublishedAt(request.getPublishedAt());
         poll.setValidUntil(request.getValidUntil());
-        poll.setCreator(creator);
-        poll.setVoteOptions(request.getOptions());
+        poll.setCreatedBy(creator);
+        poll.setOptions(request.getOptions());
 
-        pollService.createPoll(poll, creator.getUserID());
+        pollService.createPoll(poll, creator.getId());
         return ResponseEntity.ok(poll);
     }
 
@@ -107,7 +107,7 @@ public class PollController {
 
     @PostMapping("/{pollId}/vote")
     public ResponseEntity<Poll> giveVote(@PathVariable UUID pollId, @RequestBody VoteRequest voteRequest) {
-        boolean success = pollService.giveVote(voteRequest.getUserId(), pollId, new Vote(voteRequest.getSelectedOptions()));
+        boolean success = false; //pollService.giveVote(voteRequest.getUserId(), pollId, new Vote(voteRequest.getSelectedOptions()));
         return success ? ResponseEntity.ok(pollService.getPollById(pollId)) : ResponseEntity.notFound().build();
     }
 

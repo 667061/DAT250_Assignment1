@@ -1,8 +1,6 @@
 package no.hvl.dat250.Assignment1.Service;
 
 import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-import no.hvl.dat250.Assignment1.Entities.Poll;
 import no.hvl.dat250.Assignment1.Entities.User;
 import no.hvl.dat250.Assignment1.Repos.Storage;
 
@@ -21,19 +19,19 @@ public class UserService {
 
     public boolean createUser(User user){
 
-        if(storage.getUsers().containsKey(user.getUserID()))
+        if(storage.getUsers().containsKey(user.getId()))
             return false;
 
-        storage.getUsers().put(user.getUserID(),user);
+        storage.getUsers().put(user.getId(),user);
         return true;
     }
 
     public User createUser(String username, String email){
         User user = new User(username,email);
-        if(storage.getUsers().containsKey(user.getUserID()))
-            return storage.getUsers().get(user.getUserID());
+        if(storage.getUsers().containsKey(user.getId()))
+            return storage.getUsers().get(user.getId());
 
-        storage.getUsers().put(user.getUserID(),user);
+        storage.getUsers().put(user.getId(),user);
         return user;
     }
 
@@ -54,11 +52,11 @@ public class UserService {
     }
 
     public void updateUser(User user){
-         storage.getUsers().replace(user.getUserID(),user);
+         storage.getUsers().replace(user.getId(),user);
     }
 
     public void deleteUser(User user) {
-        storage.getUsers().remove(user.getUserID());
+        storage.getUsers().remove(user.getId());
 
     }
 

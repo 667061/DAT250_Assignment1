@@ -3,12 +3,10 @@ package no.hvl.dat250.Assignment1.Service;
 
 import lombok.AllArgsConstructor;
 import no.hvl.dat250.Assignment1.Entities.Poll;
-import no.hvl.dat250.Assignment1.Entities.User;
 import no.hvl.dat250.Assignment1.Entities.Vote;
 import no.hvl.dat250.Assignment1.Entities.VoteOption;
 import no.hvl.dat250.Assignment1.Repos.Storage;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -26,7 +24,7 @@ public class PollService {
         if(storage.getPolls().containsKey(poll.getId()))
             return false; //Poll already exists
 
-        poll.getVoteOptions().forEach(voteOption -> storage.getVoteOptions().put(voteOption.getId(), voteOption));
+        poll.getOptions().forEach(voteOption -> storage.getVoteOptions().put(voteOption.getId(), voteOption));
         storage.getPolls().put(poll.getId(), poll);
         return true;
     }
@@ -36,7 +34,7 @@ public class PollService {
     }
 
     public Collection<Poll> getPollsByUser(UUID userID){
-        return storage.getPolls().values().stream().filter(poll -> poll.creator.getUserID() == userID).collect(Collectors.toSet());
+        return storage.getPolls().values().stream().filter(poll -> poll.createdBy.getId() == userID).collect(Collectors.toSet());
     }
 
     public boolean giveVote(UUID userId, UUID pollId, Vote vote) {
@@ -44,14 +42,15 @@ public class PollService {
             return false;
         vote.setVoter(storage.getUsers().get(userId));
         storage.getVotes().put(pollId, vote);
-        vote.getVoteOptions().forEach(voteOption -> {
-            //Increment if exists
-            if (storage.getVoteOptions().values().stream().anyMatch(v -> v.hasSameCaption(voteOption))){
+        VoteOption voteOption = vote.getVotesOn();
 
-        }else { //create new if doesn't exist.
+        //Increment if exists
+        if (storage.getVoteOptions().values().stream().anyMatch(v -> v.hasSameCaption(voteOption))){
+
+        }else { //create new if it doesn't exist.
 
 
-            }});
+        };
         return true;
 
     }
@@ -71,7 +70,7 @@ public class PollService {
     }
 
     public Map<String,Integer> getPollResults(UUID pollId){
-       Collection<VoteOption> options = storage.getPolls().get(pollId).getVoteOptions();
+       Collection<VoteOption> options = storage.getPolls().get(pollId).getOptions();
        Map<String,Integer> results = new HashMap<>();
        for (VoteOption option : options) {
            results.put(option.getCaption(),option.getVotes().size());
@@ -97,14 +96,14 @@ public class PollService {
     }
 
     public Collection<Vote> getVotes(UUID pollId){
-        return storage.getPolls().get(pollId).getVoteOptions().stream().map(VoteOption::getVotes).flatMap(Collection::stream).collect(Collectors.toSet());
+        return storage.getPolls().get(pollId).getOptions().stream().map(VoteOption::getVotes).flatMap(Collection::stream).collect(Collectors.toSet());
     }
 
 
     public Poll updateVoteOption(UUID pollID, VoteOption voteOption){
         if(storage.getPolls().get(pollID).hasVoteOption(voteOption)) {
-            storage.getPolls().get(pollID).getVoteOptions().remove(voteOption);
-            storage.getPolls().get(pollID).getVoteOptions().add(voteOption);
+            storage.getPolls().get(pollID).getOptions().remove(voteOption);
+            storage.getPolls().get(pollID).getOptions().add(voteOption);
         }
         return storage.getPolls().get(pollID);
     }
@@ -113,13 +112,13 @@ public class PollService {
         if(!storage.getPolls().get(pollID).hasVoteOption(optionId))
             return false;
 
-        storage.getPolls().get(pollID).getVoteOptions().removeIf(voteOption -> voteOption.getId().equals(optionId));
+        storage.getPolls().get(pollID).getOptions().removeIf(voteOption -> voteOption.getId().equals(optionId));
         return true;
     }
 
 
     public Collection<VoteOption> getPollVoteOptions(UUID pollID){
-        return storage.getPolls().get(pollID).getVoteOptions();
+        return storage.getPolls().get(pollID).getOptions();
     }
 
     public void updatePoll(Poll poll){

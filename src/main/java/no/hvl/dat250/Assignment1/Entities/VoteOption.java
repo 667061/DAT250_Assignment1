@@ -26,7 +26,8 @@ public class VoteOption {
     }
 
     @Id
-    private UUID id = UUID.randomUUID();
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
     private String caption;
     private int presentationOrder = 0; //Default is order by creation, unless further specified.
     private int voteCount = 0; //Number votes gotten
@@ -35,12 +36,13 @@ public class VoteOption {
     @JsonBackReference
     private Poll poll;
 
+
     @JsonProperty("voteCount")
     public int getVoteCount(){
         return votes != null ? votes.size() : 0;
     }
 
-    @OneToMany(cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "votesOn")
     private List<Vote> votes = new ArrayList<>();
 
 

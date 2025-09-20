@@ -7,7 +7,6 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -17,49 +16,64 @@ import java.util.stream.Collectors;
 @Entity
 public class Poll {
     @Id
-    private UUID id = UUID.randomUUID();
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
     private String question;
     private Instant publishedAt;
     private Instant validUntil;
 
     @ManyToOne
+    @JoinColumn(name = "userID")
     @JsonBackReference
-    public User creator;
+    public User createdBy;
 
     @JsonManagedReference
-    @OneToMany(mappedBy="yourEntity" ,fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<VoteOption> voteOptions = new ArrayList<>();
+    @OneToMany(mappedBy = "poll", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<VoteOption> options = new ArrayList<>();
 
-
-    @JsonProperty("options")
-    public List<VoteOption> getVoteOptions() {
-        return voteOptions;
-    }
-
-    @JsonProperty("options")
-    public void setVoteOptions(List<VoteOption> options) {
-        this.voteOptions = options;
-    }
 
 
     public void giveVote(VoteOption voteOption){
         Vote vote = new Vote();
-        vote.setVoteOptions(List.of(voteOption));
+        vote.setVotesOn(voteOption);
         vote.setPublishedAt(Instant.now());
         vote.setVoter(null);
 
     }
 
     public void addVoteOption(VoteOption voteOption){
-        voteOptions.add(voteOption);
+        options.add(voteOption);
     }
 
     public boolean hasVoteOption(VoteOption voteOption){
-        return  voteOptions.contains(voteOption);
+        return  options.contains(voteOption);
     }
 
     public boolean hasVoteOption(UUID voteOptionId){
-        return  voteOptions.stream().anyMatch(voteOption -> voteOption.getId().equals(voteOptionId));
+        return  options.stream().anyMatch(voteOption -> voteOption.getId().equals(voteOptionId));
     }
+
+    /**
+     *
+     * Adds a new option to this Poll and returns the respective
+     * VoteOption object with the given caption.
+     * The value of the presentationOrder field gets determined
+     * by the size of the currently existing VoteOptions for this Poll.
+     * I.e. the first added VoteOption has presentationOrder=0, the secondly
+     * registered VoteOption has presentationOrder=1 and so on.
+     * @param caption - Caption to assign to the new VoteOption
+     * @return - return the newly created VoteOption
+     */
+    public VoteOption addVoteOption(String caption) {
+
+        VoteOption voteOption = new VoteOption(caption);
+        voteOption.setPresentationOrder(options.size());
+        voteOption.setPoll(this);
+        options.add(voteOption);
+
+        return voteOption;
+    }
+
+
 
 }

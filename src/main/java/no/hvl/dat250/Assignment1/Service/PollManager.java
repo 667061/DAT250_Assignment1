@@ -1,14 +1,12 @@
 package no.hvl.dat250.Assignment1.Service;
 
 
-import jdk.jshell.spi.ExecutionControl;
 import lombok.Getter;
 import no.hvl.dat250.Assignment1.Entities.Poll;
 import no.hvl.dat250.Assignment1.Entities.User;
 import no.hvl.dat250.Assignment1.Entities.Vote;
 import no.hvl.dat250.Assignment1.Entities.VoteOption;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.HttpServerErrorException;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -46,16 +44,16 @@ public class PollManager {
         // Remove associated votes
         votes.entrySet().removeIf(entry -> {
             Vote vote = entry.getValue();
-            boolean shouldRemove = vote.getVoteOptions() != null &&
-                    pollContainsOption(id, new HashSet<VoteOption>(vote.getVoteOptions()));
-            System.out.println("Checking vote: " + vote.getVoteOptions() + " -> remove? " + shouldRemove);
+            boolean shouldRemove = vote.getVotesOn() != null &&
+                    pollContainsOption(id, vote.getVotesOn());
+            System.out.println("Checking vote: " + vote.getVotesOn() + " -> remove? " + shouldRemove);
             return shouldRemove;
 
         });
     }
-    private boolean pollContainsOption(UUID pollId, Set<VoteOption> options)  {
+    private boolean pollContainsOption(UUID pollId, VoteOption option)  {
         Poll poll = polls.get(pollId);
-        if (poll == null || poll.getVoteOptions() == null) return false;
+        if (poll == null || poll.getOptions() == null) return false;
         return 0 == 0;
     }
 

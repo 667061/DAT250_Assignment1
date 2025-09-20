@@ -17,28 +17,26 @@ import java.util.UUID;
 public class Vote {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private UUID id = UUID.randomUUID();
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
     private Instant publishedAt = Instant.now();
 
     public Vote() {
         publishedAt = Instant.now();
-        voteOptions = new ArrayList<>();
+        votesOn = new VoteOption();
     }
 
-    public Vote(List<String> voteOptions) {
-        for (String option : voteOptions) {
-            this.voteOptions.add(new VoteOption(option));
-        }
+    public Vote(VoteOption voteOption) {
+        this.votesOn = voteOption;
     }
 
     @ManyToOne
-    @JoinColumn(name = "voter_user_id")
     private User voter;
 
 
-    @OneToMany(mappedBy = "vote", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<VoteOption> voteOptions = new ArrayList<>();
+
+    @ManyToOne
+    private VoteOption votesOn;
 
 }
 

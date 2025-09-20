@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import no.hvl.dat250.Assignment1.DTO.PollRequest;
 import no.hvl.dat250.Assignment1.Entities.User;
 import no.hvl.dat250.Assignment1.Entities.Poll;
-import no.hvl.dat250.Assignment1.Entities.Vote;
 import no.hvl.dat250.Assignment1.Entities.VoteOption;
 import no.hvl.dat250.Assignment1.Service.PollService;
 import no.hvl.dat250.Assignment1.Service.UserService;
@@ -14,7 +13,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -78,7 +76,7 @@ public class Assignment1ApplicationTests {
         pollRequest.setQuestion("What's your favorite color?");
         pollRequest.setPublishedAt(Instant.now());
         pollRequest.setValidUntil(Instant.now().plusSeconds(3600));
-        pollRequest.setCreatorId(createdUser.getUserID());
+        pollRequest.setCreatorId(createdUser.getId());
         pollRequest.setOptions(List.of(option1, option2));
 
         MvcResult pollResult = mockMvc.perform(post("/polls")
@@ -107,7 +105,7 @@ public class Assignment1ApplicationTests {
 
         // Step 4: Cast vote using VoteRequest DTO
         Map<String, Object> voteRequest = new HashMap<>();
-        voteRequest.put("userId", createdVoter.getUserID());
+        voteRequest.put("userId", createdVoter.getId());
         voteRequest.put("selectedOptions", List.of("Red"));
 
         mockMvc.perform(post("/polls/" + pollId + "/vote")
