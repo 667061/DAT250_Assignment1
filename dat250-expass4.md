@@ -10,6 +10,15 @@ Another issue was a TransientPropertyValueException, which indicated that a Poll
 
 I also encountered a unique constraint violation in the join table between Vote and VoteOption. Initially, I had modeled this relationship as @ManyToMany, but this caused problems when multiple votes referenced the same option. Changing the mapping to a @ManyToOne from Vote to VoteOption, and a corresponding @OneToMany in VoteOption, resolved the issue and better reflected the intended data model.
 
+During the execution of the JPA tests, I enabled SQL logging in the persistence configuration.
+This allowed me to observe all SQL statements generated and executed. 
+I achieved this by temporary adding the following two lines to the setUp-method:
+.property("hibernate.show_sql", "true")
+.property("hibernate.format_sql", "true"). These were later removed as they weren't a part of the initial test.
+By examining these logs, I can verify that the ORM is generating the expected SQL and interacting with the database as intended.
+During debugging I also retrieved and printed some contents of the database to the console to verify the contents. 
+
+
 Additionally, I had to align the entity mappings with the native SQL queries used in the test cases. For example, the test queried the users table and expected a column named id, while my entity used userID. I updated the @Table and @Id annotations to match the expected names, which allowed the queries to execute successfully.
 
 Finally, I ran into a logic issue where the test expected two votes for a specific option, but only one was counted. This was due to incorrect presentationOrder values and unintended cascading that caused duplicate votes to be persisted. I fixed this by correctly setting the presentationOrder using options.size() and removing cascade settings from User.votes.
