@@ -4,10 +4,16 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import redis.clients.jedis.UnifiedJedis;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @SpringBootApplication(exclude = { DataSourceAutoConfiguration.class })
 @RestController
@@ -21,5 +27,7 @@ public class Assignment1Application {
     public String welcome(@RequestParam(value = "name", defaultValue = "guest") String name){
         return String.format("Welcome %s!", name);
     }
+
+
 
 }

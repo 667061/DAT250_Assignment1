@@ -1,13 +1,11 @@
 package no.hvl.dat250.Assignment1.Entities;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @AllArgsConstructor
 @Data
@@ -31,11 +29,26 @@ public class Vote {
     }
 
     @ManyToOne
+    @JoinColumn(name="user_id")
+    @JsonBackReference
     private User voter;
 
 
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Vote vote = (Vote) o;
+        return Objects.equals(id, vote.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
+    }
 
     @ManyToOne
+    @JoinColumn(name="option_id")
+    @JsonBackReference
     private VoteOption votesOn;
 
 }

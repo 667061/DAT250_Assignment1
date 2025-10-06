@@ -38,6 +38,23 @@ h1 {
     text-align: center;
 }
 
+.vote-count {
+    font-size: 0.85rem;
+    color: #666;
+    margin-left: 0.5rem;
+}
+
+.user-section p {
+    margin-bottom: 1rem;
+}
+
+button.logout {
+    background-color: #d9534f;
+}
+button.logout:hover {
+    background-color: #b52b27;
+}
+
 form {
     display: flex;
     flex-direction: column;

@@ -6,8 +6,12 @@ import no.hvl.dat250.Assignment1.Entities.Poll;
 import no.hvl.dat250.Assignment1.Entities.Vote;
 import no.hvl.dat250.Assignment1.Entities.VoteOption;
 import no.hvl.dat250.Assignment1.Repos.Storage;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
+import redis.clients.jedis.UnifiedJedis;
 
+import javax.management.InstanceAlreadyExistsException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -15,18 +19,19 @@ import java.util.stream.Collectors;
 @Service
 public class PollService {
 
-
     private Storage storage;
 
+    @Autowired
+    private UnifiedJedis jedis;
 
 
-    public boolean createPoll(Poll poll, UUID creatorId) {
-        if(storage.getPolls().containsKey(poll.getId()))
-            return false; //Poll already exists
+    public Poll createPoll(Poll poll, UUID creatorId) throws InstanceAlreadyExistsException {
+        if (storage.getPolls().containsKey(poll.getId()))
+            throw new InstanceAlreadyExistsException("There is already such a poll"); //Poll already exists
 
         poll.getOptions().forEach(voteOption -> storage.getVoteOptions().put(voteOption.getId(), voteOption));
         storage.getPolls().put(poll.getId(), poll);
-        return true;
+        return poll;
     }
 
     public Poll getPollById(UUID pollID){
@@ -38,28 +43,30 @@ public class PollService {
     }
 
     public boolean giveVote(UUID userId, UUID pollId, Vote vote) {
-        if(!storage.getUsers().containsKey(userId))
-            return false;
-        vote.setVoter(storage.getUsers().get(userId));
-        storage.getVotes().put(pollId, vote);
-        VoteOption voteOption = vote.getVotesOn();
+        Poll poll = storage.getPolls().get(pollId);
+        if (poll == null) return false;
 
-        //Increment if exists
-        if (storage.getVoteOptions().values().stream().anyMatch(v -> v.hasSameCaption(voteOption))){
+        // persist vote
+        storage.getVotes().put(vote.getId(), vote);
+        vote.getVotesOn().getVotes().add(vote);
 
-        }else { //create new if it doesn't exist.
+        // invalidate cache
+        jedis.del("poll:" + pollId + ":results");
 
-
-        };
         return true;
-
     }
+
 
     public boolean updateVote(UUID userId, UUID pollId, Vote vote){
         if(storage.getVotes().get(pollId) == null)
             return false;
         storage.getVotes().replace(vote.getId(), vote);
         return true;
+    }
+
+    public VoteOption getVoteOptionById(UUID voteOptionId){
+        return storage.getVoteOptions().get(voteOptionId) == null ? null : storage.getVoteOptions().get(voteOptionId);
+
     }
 
     public boolean deleteVote(UUID pollId, UUID voteId){
@@ -70,13 +77,31 @@ public class PollService {
     }
 
     public Map<String,Integer> getPollResults(UUID pollId){
-       Collection<VoteOption> options = storage.getPolls().get(pollId).getOptions();
-       Map<String,Integer> results = new HashMap<>();
-       for (VoteOption option : options) {
-           results.put(option.getCaption(),option.getVotes().size());
-       }
-       return results;
+        String redisKey = "poll:" + pollId + ":results";
+
+        Map<String, String> cached = jedis.hgetAll("poll:" + pollId);
+        if (!cached.isEmpty()){
+            return cached.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> Integer.parseInt(entry.getValue())));
+        }
+
+        Poll poll = storage.getPolls().get(pollId);
+        if  (poll == null){ return Collections.emptyMap();}
+
+
+        Map<String,Integer> results = new LinkedHashMap<>();
+
+        for (VoteOption option : poll.getOptions()) {
+           int count = option.getVotes().size();
+           results.put(option.getCaption(), count);
+           jedis.hset(redisKey, option.getCaption(), String.valueOf(count));
+        }
+
+        jedis.expire("poll:" + pollId, 3600); // optional TTL
+
+        return results;
     }
+
+
 
 
 
@@ -129,14 +154,15 @@ public class PollService {
         storage.getPolls().remove(poll.getId());
     }
 
-    public boolean deletePoll(UUID id){
-
-        if(!storage.getPolls().containsKey(id))
+    public boolean deletePoll(UUID id) {
+        if (!storage.getPolls().containsKey(id))
             return false;
-
         storage.getPolls().remove(id);
+        // --- ADD HERE: remove from Redis ---
+        jedis.del("poll:" + id);
         return true;
     }
+
 
 
 }

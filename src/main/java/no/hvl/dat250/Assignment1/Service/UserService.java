@@ -5,8 +5,10 @@ import no.hvl.dat250.Assignment1.Entities.User;
 import no.hvl.dat250.Assignment1.Repos.Storage;
 
 import org.springframework.stereotype.Service;
+import redis.clients.jedis.UnifiedJedis;
 
 import java.util.Collection;
+import java.util.Set;
 import java.util.UUID;
 @AllArgsConstructor
 @Service
@@ -14,8 +16,12 @@ public class UserService {
 
 
     private final Storage storage;
+    private final UnifiedJedis jedis;
 
-
+    public Collection<User> getLoggedInUsers(){
+        Set<String> loggedInUsernames = jedis.smembers("loggedInUsers");
+        return storage.getUsers().values().stream().filter(u -> loggedInUsernames.contains(u.getUsername())).toList();
+    }
 
     public boolean createUser(User user){
 
@@ -28,11 +34,17 @@ public class UserService {
 
     public User createUser(String username, String email){
         User user = new User(username,email);
+        user.setId(UUID.randomUUID());
         if(storage.getUsers().containsKey(user.getId()))
             return storage.getUsers().get(user.getId());
 
         storage.getUsers().put(user.getId(),user);
         return user;
+    }
+
+
+    public User getUserByUsername(String username){
+        return storage.getUsers().values().stream().filter(u->u.getUsername().equals(username)).findFirst().orElse(null);
     }
 
     public User findByUsername(String username){
@@ -41,9 +53,6 @@ public class UserService {
 
 
 
-    public User getUserByUsername(String username){
-        return storage.getUsers().values().stream().filter(u->u.getUsername().equals(username)).findFirst().orElse(null);
-    }
 
     public User getUserById(UUID id){return storage.getUsers().get(id);}
 

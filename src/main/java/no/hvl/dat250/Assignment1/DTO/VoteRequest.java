@@ -13,7 +13,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class VoteRequest {
     private UUID userId;
-    private List<String> selectedOptions;
+    private UUID selectedOptionId;
 
     // Getters and setters
 }

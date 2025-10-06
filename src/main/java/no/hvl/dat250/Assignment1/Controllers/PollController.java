@@ -8,8 +8,10 @@ import no.hvl.dat250.Assignment1.Entities.VoteOption;
 import no.hvl.dat250.Assignment1.Service.PollService;
 import no.hvl.dat250.Assignment1.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import redis.clients.jedis.UnifiedJedis;
 
 import java.util.*;
 @CrossOrigin
@@ -24,20 +26,36 @@ public class PollController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    UnifiedJedis jedis;
     //Crud polls
     @PostMapping
     public ResponseEntity<Poll> createPoll(@RequestBody PollRequest request) {
         User creator = userService.getUserById(request.getCreatorId());
-        if (creator == null) return ResponseEntity.badRequest().build();
+        if (creator == null || !jedis.sismember("loggedInUsers", creator.getUsername())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
 
         Poll poll = new Poll();
+        poll.setId(UUID.randomUUID());
         poll.setQuestion(request.getQuestion());
         poll.setPublishedAt(request.getPublishedAt());
         poll.setValidUntil(request.getValidUntil());
         poll.setCreatedBy(creator);
         poll.setOptions(request.getOptions());
+        poll.getOptions().stream().forEach(opt -> opt.setPoll(poll));
+        for (VoteOption option : poll.getOptions()) {
+            jedis.hset("poll:" + poll.getId(), option.getId().toString(), "0");
+        }
 
-        pollService.createPoll(poll, creator.getId());
+
+        try {
+            pollService.createPoll(poll, creator.getId());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
         return ResponseEntity.ok(poll);
     }
 
@@ -63,6 +81,7 @@ public class PollController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePoll(@PathVariable UUID id) {
+        jedis.del("poll:" + id);
         boolean hasBeenDeleted = pollService.deletePoll(id);
         return hasBeenDeleted ? ResponseEntity.noContent().build() :  ResponseEntity.notFound().build();
     }
@@ -94,7 +113,14 @@ public class PollController {
 
     @GetMapping("/{pollId}/results")
     public ResponseEntity<Map<String,Integer>> listPollResults(@PathVariable UUID pollId) {
-           return ResponseEntity.ok(pollService.getPollResults(pollId));
+        Map<String, String> redisResults = jedis.hgetAll("poll:" + pollId);
+        Map<String, Integer> results = new HashMap<>();
+        for(VoteOption option : pollService.getPollVoteOptions(pollId)) {
+            String count = redisResults.get(option.getId()) == null ? "0" : redisResults.get(option.getId());
+            int value = Integer.parseInt(count);
+            results.put(option.getCaption(), value);
+        }
+        return ResponseEntity.ok(results);
     }
 
 
@@ -107,7 +133,35 @@ public class PollController {
 
     @PostMapping("/{pollId}/vote")
     public ResponseEntity<Poll> giveVote(@PathVariable UUID pollId, @RequestBody VoteRequest voteRequest) {
-        boolean success = false; //pollService.giveVote(voteRequest.getUserId(), pollId, new Vote(voteRequest.getSelectedOptions()));
+        User voter = userService.getUserById(voteRequest.getUserId());
+        if (voter == null || !jedis.sismember("loggedInUsers", userService.getUserById(voteRequest.getUserId()).getUsername())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        VoteOption selectedOption = pollService.getVoteOptionById(voteRequest.getSelectedOptionId());
+        if (selectedOption == null || !selectedOption.getPoll().getId().equals(pollId)) {
+            return ResponseEntity.badRequest().build();
+        }
+        String userVoteKey = "poll:" + pollId + ":userVotes";
+        String previousOptionId = jedis.hget(userVoteKey, voter.getId().toString());
+        if(previousOptionId != null) {
+            if(previousOptionId.equals(selectedOption.getId().toString())) {
+                return ResponseEntity.ok(pollService.getPollById(pollId));
+            } else{
+                jedis.hincrBy("poll:" + pollId, previousOptionId, -1);
+                jedis.hincrBy("poll:" + pollId, selectedOption.getId().toString(), 1);
+                jedis.hset(userVoteKey, voter.getId().toString(), selectedOption.getId().toString());
+            }
+        } else{
+            jedis.hincrBy("poll:" + pollId, selectedOption.getId().toString(), 1);
+            jedis.hset(userVoteKey, voter.getId().toString(), selectedOption.getId().toString());
+        }
+
+
+        Vote vote = new Vote(selectedOption);
+        vote.setVoter(voter);
+
+        boolean success = pollService.giveVote(voter.getId(), pollId, vote);
         return success ? ResponseEntity.ok(pollService.getPollById(pollId)) : ResponseEntity.notFound().build();
     }
 
@@ -122,5 +176,6 @@ public class PollController {
         boolean success = pollService.deleteVote(pollId,voteId);
         return success ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
+
 
 }

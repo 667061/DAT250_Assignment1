@@ -18,8 +18,6 @@
     let polls = [];
     let selectedVotes = {};
 
-
-
     async function createUser() {
         const user = { username, email };
         const response = await fetch('/users', {
@@ -30,26 +28,25 @@
 
         if (response.ok) {
             const createdUser = await response.json();
-            userId = createdUser.userID;
+            userId = createdUser.id; // ensure matches backend field
+            username = createdUser.username;
             isLoggedIn = true;
+            loginError = false;
         }
     }
-    function toISOStringWithZ(datetimeLocal) {
-        const date = new Date(datetimeLocal);
-        return date.toISOString(); // Converts to "2025-10-25T19:02:00.000Z"
-    }
-
 
     async function loginUser() {
         try {
-            const response = await fetch(`/users/login?username=${username}`);
+            const response = await fetch(`/users/login?username=${username}`, {
+                method: 'POST'
+            });
             if (response.ok) {
                 const existingUser = await response.json();
-                userId = existingUser.userID;
+                userId = existingUser.id;
                 isLoggedIn = true;
-                loginError = false; // clear error
+                loginError = false;
             } else {
-                loginError = true; // show error
+                loginError = true;
             }
         } catch (error) {
             console.error('Error logging in:', error);
@@ -57,6 +54,13 @@
         }
     }
 
+    async function logoutUser() {
+        await fetch(`/users/logout?username=${username}`, { method: 'POST' });
+        isLoggedIn = false;
+        userId = null;
+        username = '';
+        email = '';
+    }
 
     function addOption() {
         options = [...options, ''];
@@ -69,11 +73,10 @@
         const poll = {
             question,
             options: options.filter(opt => opt.trim() !== ''),
-            validUntil: toISOStringWithZ(validUntil),
-            publishedAt: new Date().toISOString(),
-            creator: { id: userId }
+            validUntil: new Date(validUntil).toISOString(),
+            publishedAt,
+            creatorId: userId
         };
-
 
         const response = await fetch('/polls', {
             method: 'POST',
@@ -90,33 +93,33 @@
         }
     }
 
-    async function castVote(event, pollId) {
-        event.preventDefault();
-        const selected = selectedVotes[pollId] || [];
+    async function castVote(e, pollId) {
+        e.preventDefault();
+        const selectedOptionId = selectedVotes[pollId];
+        if (!selectedOptionId) return;
 
-        const vote = {
-            userId,
-            selectedOptions: selected
-        };
-
-        const response = await fetch(`/polls/${pollId}/vote`, {
+        await fetch(`/polls/${pollId}/vote`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(vote)
+            body: JSON.stringify({
+                userId,
+                selectedOptionId
+            })
         });
 
-        if (response.ok) {
-            alert('Vote cast successfully!');
+        const res = await fetch(`/polls/${pollId}/results`);
+        if(res.ok){
+            const results = await res.json();
+            polls = polls.map(p => p.id === pollId ? { ... p, results} : p)
         }
     }
 
-    function toggleOption(pollId, caption) {
-        const current = selectedVotes[pollId] || [];
-        selectedVotes[pollId] = current.includes(caption)
-            ? current.filter(o => o !== caption)
-            : [...current, caption];
+    function selectOption(pollId, optionId) {
+        selectedVotes = {
+            ...selectedVotes,
+            [pollId]: optionId
+        };
     }
-
 
     onMount(async () => {
         const response = await fetch('/polls');
@@ -130,30 +133,31 @@
 
 
 <main>
-    <h1>Poll application</h1>
+    <h1>Poll Application</h1>
+
     <!-- Section 1: User -->
     <section class="user-section">
-        <h2>User</h2>
         {#if !isLoggedIn}
+            <h2>Welcome</h2>
+            <p>Please register or log in to continue.</p>
+
             <form on:submit|preventDefault={createUser}>
-                <input bind:value={username} placeholder="Username" />
-                <input bind:value={email} placeholder="Email" />
-                <button type="submit">Create User</button>
+                <input bind:value={username} placeholder="Username" required />
+                <input bind:value={email} placeholder="Email" required />
+                <button type="submit">Register</button>
             </form>
 
             <form on:submit|preventDefault={loginUser}>
-                <h2>Login</h2>
-                <input bind:value={username} placeholder="Username" />
-
+                <h3>Login</h3>
+                <input bind:value={username} placeholder="Username" required />
                 {#if loginError}
                     <p class="error-message">User doesn't exist</p>
                 {/if}
-
                 <button type="submit">Login</button>
             </form>
-
         {:else}
             <p>Logged in as: <strong>{username}</strong></p>
+            <button on:click={logoutUser}>Logout</button>
         {/if}
     </section>
 
@@ -162,40 +166,45 @@
         <section class="create-poll-section">
             <h2>Create Poll</h2>
             <form on:submit={handleSubmit}>
-                <input bind:value={question} placeholder="Poll question" />
+                <input bind:value={question} placeholder="Poll question" required />
 
                 {#each options as option, index}
-                    <input bind:value={options[index]} placeholder={`Option ${index + 1}`} />
+                    <input bind:value={options[index]} placeholder={`Option ${index + 1}`} required />
                 {/each}
 
-                <input type="datetime-local" bind:value={validUntil} />
+                <input type="datetime-local" bind:value={validUntil} required />
                 <button type="button" on:click={addOption}>+ Add Option</button>
                 <button type="submit">Create Poll</button>
             </form>
         </section>
-    {/if}
 
-    <!-- Section 3: Cast Vote -->
-    <section class="vote-section">
-        <h2>Vote on polls</h2>
-        {#each polls as poll}
-            <div class="poll-card">
-                <h3>{poll.question}</h3>
-                <form on:submit={(e) => castVote(e, poll.id)}>
-                    {#each poll.options as option}
-                        <label>
-                            <input
-                                    type="checkbox"
-                                    checked={selectedVotes[poll.id]?.includes(option.caption)}
-                                    on:change={() => toggleOption(poll.id, option.caption)}
-                            />
-                            {option.caption} <!--<span class="vote-count">({option.voteCount} votes)</span> For future, display number of votes-->
-                        </label>
-                    {/each}
-                    <button type="submit">Cast Vote</button>
-                </form>
-            </div>
-        {/each}
-    </section>
+        <!-- Section 3: Cast Vote -->
+        <section class="vote-section">
+            <h2>Vote on Polls</h2>
+            {#each polls as poll}
+                <div class="poll-card">
+                    <h3>{poll.question}</h3>
+                    <form on:submit={(e) => castVote(e, poll.id)}>
+                        {#each poll.options as option}
+                            <label>
+                                <input
+                                        type="radio"
+                                        name={`poll-${poll.id}`}
+                                        value={option.id}
+                                        checked={selectedVotes[poll.id] === option.id}
+                                        on:change={() => selectOption(poll.id, option.id)}
+                                />
+                                {option.caption}
+                                {#if poll.results}
+                                    <span class="vote-count">({poll.results[option.caption] || 0})</span>
+                                {/if}
+                            </label>
+                        {/each}
+                        <button type="submit">Cast Vote</button>
+                    </form>
+                </div>
+            {/each}
+        </section>
+    {/if}
 </main>
 

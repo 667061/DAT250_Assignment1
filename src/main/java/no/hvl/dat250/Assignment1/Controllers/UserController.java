@@ -7,6 +7,7 @@ import no.hvl.dat250.Assignment1.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import redis.clients.jedis.UnifiedJedis;
 
 import javax.swing.text.html.parser.Entity;
 import java.util.Collection;
@@ -20,19 +21,35 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    UnifiedJedis jedis;
 
     @PostMapping
     public ResponseEntity<User> createUser(@RequestBody User user) {
         User createdUser = userService.createUser(user.getUsername(), user.getEmail());
+        jedis.sadd("loggedInUsers", createdUser.getUsername());
         return ResponseEntity.ok(createdUser);
     }
 
-    @GetMapping("/login")
-    public ResponseEntity<User> login(@RequestParam String username) {
-        User user = userService.findByUsername(username);
-        return user != null ? ResponseEntity.ok(user) : ResponseEntity.notFound().build();
+    @GetMapping("/loggedin")
+    public Collection<User> listLoggedInUsers() {
+        return userService.getLoggedInUsers();
     }
 
+
+    @PostMapping("/login")
+    public ResponseEntity<User> login(@RequestParam String username) {
+        User user = userService.getUserByUsername(username);
+        if (user == null) return ResponseEntity.notFound().build();
+        jedis.sadd("loggedInUsers", username);
+        return ResponseEntity.ok(user);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestParam String username) {
+        jedis.srem("loggedInUsers", username);
+        return ResponseEntity.noContent().build();
+    }
 
     @GetMapping
     public Collection<User> listUsers() {
@@ -50,6 +67,5 @@ public class UserController {
         boolean deleted = userService.deleteUser(id);
         return deleted ?  ResponseEntity.ok(userService.getUserById(id)): ResponseEntity.notFound().build();
     }
-
 
 }

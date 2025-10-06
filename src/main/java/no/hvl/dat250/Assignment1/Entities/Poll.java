@@ -17,7 +17,7 @@ import java.util.*;
 public class Poll {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    private UUID id = UUID.randomUUID();
     private String question;
     private Instant publishedAt;
     private Instant validUntil;
@@ -25,9 +25,11 @@ public class Poll {
     @ManyToOne
     @JoinColumn(name = "userID")
     @JsonBackReference
+    @ToString.Exclude
     public User createdBy;
 
     @JsonManagedReference
+    @ToString.Exclude
     @OneToMany(mappedBy = "poll", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<VoteOption> options = new ArrayList<>();
 
