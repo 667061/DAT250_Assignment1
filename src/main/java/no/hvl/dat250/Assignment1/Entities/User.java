@@ -29,12 +29,12 @@ public class User {
     }
 
     @OneToMany(mappedBy = "voter")
-    @JsonIgnore
+    @JsonManagedReference("user-votes")
     private List<Vote> votes = new LinkedList<>(); //votes given to polls
 
 
     @OneToMany(mappedBy = "createdBy", fetch = FetchType.EAGER, cascade =  CascadeType.ALL)
-    @JsonIgnore
+    @JsonManagedReference("user-polls")
     private List<Poll> polls = new LinkedList<>(); //polls created
 
 

@@ -36,7 +36,7 @@ public class VoteOption {
 
     @ManyToOne
     @JoinColumn(name ="poll_id")
-    @JsonBackReference
+    @JsonBackReference("poll-options")
     private Poll poll;
 
 
@@ -47,7 +47,7 @@ public class VoteOption {
     }
 
     @OneToMany(mappedBy = "votesOn")
-    @JsonManagedReference
+    @JsonManagedReference("option-votes")
     private List<Vote> votes = new ArrayList<>();
 
 

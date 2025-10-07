@@ -24,11 +24,11 @@ public class Poll {
 
     @ManyToOne
     @JoinColumn(name = "userID")
-    @JsonBackReference
+    @JsonBackReference("user-polls")
     @ToString.Exclude
     public User createdBy;
 
-    @JsonManagedReference
+    @JsonManagedReference("poll-options")
     @ToString.Exclude
     @OneToMany(mappedBy = "poll", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<VoteOption> options = new ArrayList<>();

@@ -57,16 +57,15 @@ public class Assignment1ApplicationTests {
 
         User createdUser = objectMapper.readValue(userResult.getResponse().getContentAsString(), User.class);
 
-        // Step 2: Create Poll with VoteOptions
-        VoteOption option1 = new VoteOption("Red");
-        VoteOption option2 = new VoteOption("Blue");
+        mockMvc.perform(post("/users/login").param("username", createdUser.getUsername())).andExpect(status().isOk());
+
 
         PollRequest pollRequest = new PollRequest();
         pollRequest.setQuestion("What's your favorite color?");
         pollRequest.setPublishedAt(Instant.now());
         pollRequest.setValidUntil(Instant.now().plusSeconds(3600));
         pollRequest.setCreatorId(createdUser.getId());
-        pollRequest.setOptions(List.of(option1, option2));
+        pollRequest.setOptions(List.of("Red","Blue"));
 
         MvcResult pollResult = mockMvc.perform(post("/polls")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -90,7 +89,7 @@ public class Assignment1ApplicationTests {
                 .andReturn();
 
         User createdVoter = objectMapper.readValue(voterResult.getResponse().getContentAsString(), User.class);
-
+        mockMvc.perform(post("/users/login").param("username", createdVoter.getUsername())).andExpect(status().isOk());
         // Step 4: Cast vote using VoteRequest DTO (single-choice)
         Map<String, Object> voteRequest = new HashMap<>();
         voteRequest.put("userId", createdVoter.getId());

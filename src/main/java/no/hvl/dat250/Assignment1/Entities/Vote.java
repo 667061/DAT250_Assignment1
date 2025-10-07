@@ -30,7 +30,7 @@ public class Vote {
 
     @ManyToOne
     @JoinColumn(name="user_id")
-    @JsonBackReference
+    @JsonBackReference("user-votes")
     private User voter;
 
 
@@ -48,7 +48,7 @@ public class Vote {
 
     @ManyToOne
     @JoinColumn(name="option_id")
-    @JsonBackReference
+    @JsonBackReference("option-votes")
     private VoteOption votesOn;
 
 }
