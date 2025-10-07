@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import redis.clients.jedis.UnifiedJedis;
 
-import javax.swing.text.html.parser.Entity;
 import java.util.Collection;
 import java.util.UUID;
 

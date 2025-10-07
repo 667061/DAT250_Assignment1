@@ -19,6 +19,6 @@ public class PollRequest {
     private Instant publishedAt;
     private Instant validUntil;
     private UUID creatorId;
-    private List<VoteOption> options;
+    private List<String> options;
 }
 

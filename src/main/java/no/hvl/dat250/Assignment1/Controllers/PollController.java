@@ -42,12 +42,18 @@ public class PollController {
         poll.setPublishedAt(request.getPublishedAt());
         poll.setValidUntil(request.getValidUntil());
         poll.setCreatedBy(creator);
-        poll.setOptions(request.getOptions());
-        poll.getOptions().stream().forEach(opt -> opt.setPoll(poll));
+
+        List<VoteOption> options = new ArrayList<>();
+        for(String caption : request.getOptions()) {
+            VoteOption option = new VoteOption(caption);
+            option.setPoll(poll);
+            options.add(option);
+        }
+        poll.setOptions(options);
+
         for (VoteOption option : poll.getOptions()) {
             jedis.hset("poll:" + poll.getId(), option.getId().toString(), "0");
         }
-
 
         try {
             pollService.createPoll(poll, creator.getId());
@@ -116,8 +122,8 @@ public class PollController {
         Map<String, String> redisResults = jedis.hgetAll("poll:" + pollId);
         Map<String, Integer> results = new HashMap<>();
         for(VoteOption option : pollService.getPollVoteOptions(pollId)) {
-            String count = redisResults.get(option.getId()) == null ? "0" : redisResults.get(option.getId());
-            int value = Integer.parseInt(count);
+            String count = redisResults.get(option.getId().toString());
+            int value = (count != null) ? Integer.parseInt(count) : 0;
             results.put(option.getCaption(), value);
         }
         return ResponseEntity.ok(results);
