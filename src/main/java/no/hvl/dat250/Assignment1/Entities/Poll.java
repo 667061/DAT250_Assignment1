@@ -2,7 +2,6 @@ package no.hvl.dat250.Assignment1.Entities;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
@@ -17,7 +16,7 @@ import java.util.*;
 public class Poll {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id = UUID.randomUUID();
+    private UUID id;
     private String question;
     private Instant publishedAt;
     private Instant validUntil;
@@ -33,15 +32,6 @@ public class Poll {
     @OneToMany(mappedBy = "poll", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<VoteOption> options = new ArrayList<>();
 
-
-
-    public void giveVote(VoteOption voteOption){
-        Vote vote = new Vote();
-        vote.setVotesOn(voteOption);
-        vote.setPublishedAt(Instant.now());
-        vote.setVoter(null);
-
-    }
 
     public void addVoteOption(VoteOption voteOption){
         options.add(voteOption);

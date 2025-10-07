@@ -1,10 +1,11 @@
 package no.hvl.dat250.Assignment1.Entities;
-
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.*;
 
@@ -33,7 +34,7 @@ public class User {
     private List<Vote> votes = new LinkedList<>(); //votes given to polls
 
 
-    @OneToMany(mappedBy = "createdBy", fetch = FetchType.EAGER, cascade =  CascadeType.ALL)
+    @OneToMany(mappedBy = "createdBy", orphanRemoval = true, cascade =  CascadeType.ALL)
     @JsonManagedReference("user-polls")
     private List<Poll> polls = new LinkedList<>(); //polls created
 

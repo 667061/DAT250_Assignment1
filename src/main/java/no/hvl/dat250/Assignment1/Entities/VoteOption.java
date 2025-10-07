@@ -29,7 +29,7 @@ public class VoteOption {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id = UUID.randomUUID();
+    private UUID id;
     private String caption;
     private int presentationOrder = 0; //Default is order by creation, unless further specified.
     private int voteCount = 0; //Number votes gotten
@@ -46,7 +46,7 @@ public class VoteOption {
         return votes != null ? votes.size() : 0;
     }
 
-    @OneToMany(mappedBy = "votesOn")
+    @OneToMany(mappedBy = "votesOn", cascade =   CascadeType.ALL,orphanRemoval = true)
     @JsonManagedReference("option-votes")
     private List<Vote> votes = new ArrayList<>();
 
@@ -58,10 +58,6 @@ public class VoteOption {
         if (o == null || getClass() != o.getClass()) return false;
         VoteOption that = (VoteOption) o;
         return this.id == that.getId();
-    }
-
-    public boolean hasSameCaption(VoteOption voteOption) {
-        return this.caption.equals(voteOption.getCaption());
     }
 
 

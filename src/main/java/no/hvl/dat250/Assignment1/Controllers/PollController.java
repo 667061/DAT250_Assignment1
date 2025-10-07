@@ -46,6 +46,7 @@ public class PollController {
         List<VoteOption> options = new ArrayList<>();
         for(String caption : request.getOptions()) {
             VoteOption option = new VoteOption(caption);
+            option.setId(UUID.randomUUID());
             option.setPoll(poll);
             options.add(option);
         }
@@ -58,7 +59,7 @@ public class PollController {
         try {
             pollService.createPoll(poll, creator.getId());
         } catch (Exception e) {
-            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
 
 
@@ -68,10 +69,8 @@ public class PollController {
 
 
 
-
-
     @PutMapping("/{pollId}")
-    public ResponseEntity<Poll> updatePoll(@RequestBody Poll poll, @PathVariable UUID pollId) {
+    public ResponseEntity<Poll> updatePoll(@RequestBody Poll poll, @PathVariable String pollId) {
         pollService.updatePoll(poll);
         return ResponseEntity.ok(poll);
     }
